@@ -6,19 +6,17 @@ import numpy as np
 
 def get_image_feature_by_path(img_path, feature_size=64):
     files = {'file': open(img_path, 'rb')}
-    return get_image_feature_(files, feature_size)
+    return __get_image_feature(files, feature_size)
 
 
 def get_image_feature_by_image(img, feature_size=64):
     img_bytes = io.BytesIO()
     img.save(img_bytes, format='JPEG')
     files = {'file': ('img.jpg', img_bytes.getvalue(), 'image/jpeg')}
-    return get_image_feature_(files, feature_size)
+    return __get_image_feature(files, feature_size)
 
 
-def get_image_feature_(files, feature_size):
-    """Get the 64 byte array feature of the image"""
-
+def __get_image_feature(files, feature_size):
     if feature_size == 64:
         url = 'http://akiwi.eu/mxnet/feature/'
     elif feature_size == 50:
@@ -38,19 +36,43 @@ def get_image_feature_(files, feature_size):
 
 
 def download_feature_vectors(img_dir, save_dir, feature_size=64):
+    extension = '.raw' if feature_size == 2000 else '.npy'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    for idx, file in enumerate(os.listdir(img_dir)):
+    files = os.listdir(img_dir)
+    for idx, file in enumerate(files):
         if idx % 1000 == 0:
-            print('Downloaded {}'.format(idx))
+            print('Downloaded {} / {}'.format(idx, len(files)))
+
+        save_path = os.path.join(save_dir, file.split('.')[0] + extension)
+        if os.path.exists(save_path):
+            continue
+
+        img_path = os.path.join(img_dir, file)
+        feature = get_image_feature_by_path(img_path, feature_size)
+
+        with open(save_path, 'wb') as f:
+            f.write(feature)
+
+
+def download_feature_vectors_114(img_dir, save_dir):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    files = os.listdir(img_dir)
+    for idx, file in enumerate(files):
+        if idx % 1000 == 0:
+            print('Downloaded {} / {}'.format(idx, len(files)))
 
         save_path = os.path.join(save_dir, file.split('.')[0] + '.npy')
         if os.path.exists(save_path):
             continue
 
         img_path = os.path.join(img_dir, file)
-        feature = get_image_feature_by_path(img_path, feature_size)
+        feature64 = get_image_feature_by_path(img_path, feature_size=64)
+        feature50 = get_image_feature_by_path(img_path, feature_size=50)
+        feature = feature64 + feature50
 
         with open(save_path, 'wb') as f:
             f.write(feature)
