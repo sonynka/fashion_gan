@@ -42,7 +42,7 @@ def download_feature_vectors(img_dir, save_dir, feature_size=64):
 
     files = os.listdir(img_dir)
     for idx, file in enumerate(files):
-        if idx % 1000 == 0:
+        if idx % 100 == 0:
             print('Downloaded {} / {}'.format(idx, len(files)))
 
         save_path = os.path.join(save_dir, file.split('.')[0] + extension)
@@ -62,20 +62,23 @@ def download_feature_vectors_114(img_dir, save_dir):
 
     files = os.listdir(img_dir)
     for idx, file in enumerate(files):
-        if idx % 1000 == 0:
-            print('Downloaded {} / {}'.format(idx, len(files)))
+        try:
+            if idx % 100 == 0:
+                print('Downloaded {} / {}'.format(idx, len(files)))
 
-        save_path = os.path.join(save_dir, file.split('.')[0] + '.npy')
-        if os.path.exists(save_path):
-            continue
+            save_path = os.path.join(save_dir, file.split('.')[0] + '.npy')
+            if os.path.exists(save_path):
+                continue
 
-        img_path = os.path.join(img_dir, file)
-        feature64 = get_image_feature_by_path(img_path, feature_size=64)
-        feature50 = get_image_feature_by_path(img_path, feature_size=50)
-        feature = feature64 + feature50
+            img_path = os.path.join(img_dir, file)
+            feature64 = get_image_feature_by_path(img_path, feature_size=64)
+            feature50 = get_image_feature_by_path(img_path, feature_size=50)
+            feature = feature64 + feature50
 
-        with open(save_path, 'wb') as f:
-            f.write(feature)
+            with open(save_path, 'wb') as f:
+                f.write(feature)
+        except Exception as e:
+            print('Problem with file {}: {}'.format(file, e))
 
 
 def concat_feature_vectors(feature_A_dir, feature_B_dir, save_dir):
