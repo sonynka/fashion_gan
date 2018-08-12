@@ -56,23 +56,21 @@ def download_feature_vectors(img_dir, save_dir, feature_size=64):
             f.write(feature)
 
 
-def download_feature_vectors_114(img_dir, save_dir):
+def download_feature_vectors_114(files, save_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    files = os.listdir(img_dir)
     for idx, file in enumerate(files):
         try:
             if idx % 100 == 0:
                 print('Downloaded {} / {}'.format(idx, len(files)))
 
-            save_path = os.path.join(save_dir, file.split('.')[0] + '.npy')
+            save_path = os.path.join(save_dir, os.path.basename(file).split('.')[0] + '.npy')
             if os.path.exists(save_path):
                 continue
 
-            img_path = os.path.join(img_dir, file)
-            feature64 = get_image_feature_by_path(img_path, feature_size=64)
-            feature50 = get_image_feature_by_path(img_path, feature_size=50)
+            feature64 = get_image_feature_by_path(file, feature_size=64)
+            feature50 = get_image_feature_by_path(file, feature_size=50)
             feature = feature64 + feature50
 
             with open(save_path, 'wb') as f:
