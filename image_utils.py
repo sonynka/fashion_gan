@@ -2,6 +2,7 @@ import io
 import os
 import requests
 import numpy as np
+from PIL import Image
 
 
 def get_image_feature_by_path(img_path, feature_size=64):
@@ -65,7 +66,7 @@ def download_feature_vectors_114(files, save_dir):
             if idx % 100 == 0:
                 print('Downloaded {} / {}'.format(idx, len(files)))
 
-            save_path = os.path.join(save_dir, os.path.basename(file).split('.')[0] + '.npy')
+            save_path = os.path.join(save_dir, os.path.basename(file).split('.jpg')[0] + '.npy')
             if os.path.exists(save_path):
                 continue
 
@@ -77,6 +78,33 @@ def download_feature_vectors_114(files, save_dir):
                 f.write(feature)
         except Exception as e:
             print('Problem with file {}: {}'.format(file, e))
+
+
+def save_feature_vectors_from_model(files, save_dir, model, data_transforms):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    for idx, file in enumerate(files):
+        try:
+            if idx % 100 == 0:
+                print('Downloaded {} / {}'.format(idx, len(files)))
+
+            save_path = os.path.join(save_dir, os.path.basename(file).split('.jpg')[0] + '.npy')
+            if os.path.exists(save_path):
+                continue
+
+            feature = get_image_feature_from_model(file, model, data_transforms)
+            np.save(save_path, feature)
+
+        except Exception as e:
+            print('Problem with file {}: {}'.format(file, e))
+
+
+def get_image_feature_from_model(img_path, model, data_transforms):
+    img = Image.open(img_path).convert('RGB')
+    feature = model(data_transforms(img).unsqueeze(0))
+    feature = feature.squeeze().data.numpy()
+    return feature
 
 
 def concat_feature_vectors(feature_A_dir, feature_B_dir, save_dir):
