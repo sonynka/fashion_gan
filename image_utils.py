@@ -36,25 +36,22 @@ def __get_image_feature(files, feature_size):
                          response)
 
 
-def download_feature_vectors(img_dir, save_dir, feature_size=64):
+def download_feature_vectors(files, save_dir, feature_size=64):
     extension = '.raw' if feature_size == 2000 else '.npy'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    files = os.listdir(img_dir)
     for idx, file in enumerate(files):
         if idx % 100 == 0:
             print('Downloaded {} / {}'.format(idx, len(files)))
 
-        save_path = os.path.join(save_dir, file.split('.')[0] + extension)
+        save_path = os.path.join(save_dir, os.path.basename(file).split('.jpg')[0] + extension)
         if os.path.exists(save_path):
             continue
 
-        img_path = os.path.join(img_dir, file)
-        feature = get_image_feature_by_path(img_path, feature_size)
-
-        with open(save_path, 'wb') as f:
-            f.write(feature)
+        feature = get_image_feature_by_path(file, feature_size)
+        feature = np.frombuffer(feature, dtype=np.uint8)
+        np.save(save_path, feature)
 
 
 def download_feature_vectors_114(files, save_dir):
@@ -74,8 +71,9 @@ def download_feature_vectors_114(files, save_dir):
             feature50 = get_image_feature_by_path(file, feature_size=50)
             feature = feature64 + feature50
 
-            with open(save_path, 'wb') as f:
-                f.write(feature)
+            feature = np.frombuffer(feature, dtype=np.uint8)
+            np.save(save_path, feature)
+
         except Exception as e:
             print('Problem with file {}: {}'.format(file, e))
 
