@@ -3,6 +3,7 @@ import os
 import requests
 import numpy as np
 from PIL import Image
+from sklearn.metrics import pairwise_distances
 
 
 def get_image_feature_by_path(img_path, feature_size=64):
@@ -141,5 +142,3 @@ def load_feature_vector(path):
     with open(path, 'rb') as f:
         b = f.read()
     return np.frombuffer(b, dtype=np.uint8)
-
-
