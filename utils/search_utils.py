@@ -10,6 +10,7 @@ import torch.nn as nn
 from torchvision import transforms
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from utils import image_utils
 
 
 class CombinedSearch():
@@ -30,6 +31,7 @@ class CombinedSearch():
         self.features = np.concatenate(self.features, axis=1)
 
     def get_similar_images(self, img, num_imgs=8):
+        img = image_utils.process_image(img)
 
         img_feature = []
         for search, factor in zip(self.search_list, self.factors):
@@ -90,7 +92,8 @@ class Search():
 
         return scaler
 
-    def get_similar_images(self, img, num_imgs=8):
+    def get_similar_images(self, img: Image, num_imgs=8):
+        img = image_utils.process_image(img)
 
         img_feature = self.feature_generator.get_feature(img)
         img_feature = img_feature.reshape(1, -1)
