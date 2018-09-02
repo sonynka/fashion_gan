@@ -3,15 +3,8 @@ import os
 import requests
 import numpy as np
 from PIL import Image
-from sklearn.metrics import pairwise_distances
 
-
-def get_image_feature_by_path(img_path, feature_size=64):
-    files = {'file': open(img_path, 'rb')}
-    return __get_image_feature(files, feature_size)
-
-
-def get_image_feature_by_image(img, feature_size=64):
+def get_image_feature(img: Image, feature_size=64):
     img_bytes = io.BytesIO()
     img.save(img_bytes, format='JPEG')
     files = {'file': ('img.jpg', img_bytes.getvalue(), 'image/jpeg')}
@@ -37,23 +30,6 @@ def __get_image_feature(files, feature_size):
                          response)
 
 
-def download_feature_vectors(files, save_dir, feature_size=64):
-    extension = '.raw' if feature_size == 2000 else '.npy'
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    for idx, file in enumerate(files):
-        if idx % 100 == 0:
-            print('Downloaded {} / {}'.format(idx, len(files)))
-
-        save_path = os.path.join(save_dir, os.path.basename(file).split('.jpg')[0] + extension)
-        if os.path.exists(save_path):
-            continue
-
-        feature = get_image_feature_by_path(file, feature_size)
-        feature = np.frombuffer(feature, dtype=np.uint8)
-        np.save(save_path, feature)
-
 
 def download_feature_vectors_114(files, save_dir):
     if not os.path.exists(save_dir):
@@ -68,8 +44,8 @@ def download_feature_vectors_114(files, save_dir):
             if os.path.exists(save_path):
                 continue
 
-            feature64 = get_image_feature_by_path(file, feature_size=64)
-            feature50 = get_image_feature_by_path(file, feature_size=50)
+            feature64 = get_image_feature(Image.open(file), feature_size=64)
+            feature50 = get_image_feature(Image.open(file), feature_size=50)
             feature = feature64 + feature50
 
             feature = np.frombuffer(feature, dtype=np.uint8)

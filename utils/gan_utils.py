@@ -1,4 +1,4 @@
-from models import stargan, pix2pix
+from networks import stargan, pix2pix
 from torchvision import transforms
 import torch
 
@@ -96,7 +96,7 @@ class Pix2PixGenerator():
 
 
 def main():
-    s = StarGAN_generator('./generators/stargan/')
+    s = StarGAN_generator('./models/stargan/')
     test_img_path = './test_images/dresses_sample/IV321C031-Q11.jpg'
     test_img = Image.open(test_img_path)
     fake_img = s.generate_image(test_img, 'sleeve_length', 'long')
