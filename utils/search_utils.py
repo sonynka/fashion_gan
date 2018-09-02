@@ -11,35 +11,32 @@ from torchvision import transforms
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
+
 class CombinedSearch():
 
-    def __init__(self, images_root, feat_dict):
+    def __init__(self, search_list, factors=None):
         """
         """
+        if not factors:
+            factors = [1, 1]
 
-        self.images_root = images_root
-
-        self.searches = {}
+        self.factors = factors
+        self.search_list = search_list
         self.features = []
-        self.feature_names = []
 
-        for features_root, feature_generator in feat_dict.items():
-            feature_name = features_root.split('/')[-1]
-            search = Search(images_root, features_root, feature_generator)
-
-            self.searches[feature_name] = search
-            self.features.append(search.features)
-            self.feature_names.append(search.feature_names)
+        for search, factor in zip(search_list, factors):
+            self.features.append(factor * search.features)
 
         self.features = np.concatenate(self.features, axis=1)
 
     def get_similar_images(self, img, num_imgs=8):
 
         img_feature = []
-        for search_name, search in self.searches.items():
+        for search, factor in zip(self.search_list, self.factors):
             feature = search.feature_generator.get_feature(img)
+            feature = feature.reshape(1, -1)
             feature = search.scaler.transform(feature)
-            img_feature.append(feature)
+            img_feature.append(factor * feature.squeeze())
 
         img_feature = np.concatenate(img_feature)
         img_feature = img_feature.reshape(1, -1)
@@ -48,7 +45,8 @@ class CombinedSearch():
         best_img_idxs = np.argsort(dist)[0].tolist()[:num_imgs]
         best_img_dist = dist[0][best_img_idxs]
 
-        best_img_paths = [os.path.join(self.images_root, self.feature_names[0][i] + '.jpg')
+        best_img_paths = [os.path.join(self.search_list[0].images_root,
+                                       self.search_list[0].feature_names[i] + '.jpg')
                           for i in best_img_idxs]
 
         return best_img_paths, best_img_dist
@@ -76,6 +74,7 @@ class Search():
         self.scaler = self.scale_features()
 
     def load_features(self):
+        print('Loading features from:', self.features_root)
         feat_files = glob.glob(os.path.join(self.features_root, '*.npy'))
         feat_files = sorted(feat_files)
 
@@ -119,11 +118,9 @@ class ResnetFeatureGenerator():
         self.model_path = retrained_model_path
         self.model = self.load_resnet152()
 
-
     def get_feature(self, img: Image):
         feature = self.model(self.data_transforms(img).unsqueeze(0))
         feature = feature.squeeze().data.numpy()
-        feature = feature
 
         return feature
 
@@ -200,14 +197,15 @@ def download_feature_vectors(files, save_dir, feature_gen=None):
 
 def main():
     product_imgs = '../../data/fashion/dresses/'
+    product_feats_root = './data/features/fashion/dresses/'
+    searches = {}
 
-    s = Search(product_imgs, '../../data/features/fashion/dresses/akiwi_64', AkiwiFeatureGenerator(64))
-    s.get_similar_images(Image.open('../../data/fashion/dresses/5713733606269.jpg'))
+    search = CombinedSearch(product_imgs,
+                                       [os.path.join(product_feats_root, f) for f in ['akiwi_50', 'resnet']],
+                                       [AkiwiFeatureGenerator(50), ResnetFeatureGenerator()],
+                                       factors=[100, 1])
 
-    product_feats_root = '../../data/features/fashion/dresses/'
-    s = CombinedSearch(product_imgs,
-                       {'../../data/features/fashion/dresses/akiwi_50': AkiwiFeatureGenerator(50),
-                        '../../data/features/fashion/dresses/resnet': ResnetFeatureGenerator()})
+    search.get_similar_images(Image.open('../../data/fashion/dresses/5713733606269.jpg'))
 
 
     print('done')
