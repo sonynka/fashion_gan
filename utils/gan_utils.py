@@ -25,11 +25,14 @@ class StarGAN_generator():
         for attr, label_map in self.LABELS.items():
             num_classes = len(self.LABELS[attr])
 
-            G_path = os.path.join(G_path_root, attr + '.pth')
-            G = stargan.Generator(c_dim=num_classes)
-            G.load_state_dict(torch.load(G_path, map_location='cpu'))
+            try:
+                G_path = os.path.join(G_path_root, attr + '.pth')
+                G = stargan.Generator(c_dim=num_classes)
+                G.load_state_dict(torch.load(G_path, map_location='cpu'))
 
-            self.G_models[attr] = G
+                self.G_models[attr] = G
+            except:
+                print("Couldn't find model", G_path)
 
     def generate_image(self, image: Image, attr: str, value: str):
 

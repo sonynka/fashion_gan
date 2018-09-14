@@ -30,7 +30,7 @@ class CombinedSearch():
 
         self.features = np.concatenate(self.features, axis=1)
 
-    def get_similar_images(self, img, num_imgs=8):
+    def get_similar_images(self, img, num_imgs=8, metric='l2'):
         img = image_utils.process_image(img)
 
         img_feature = []
@@ -43,15 +43,16 @@ class CombinedSearch():
         img_feature = np.concatenate(img_feature)
         img_feature = img_feature.reshape(1, -1)
 
-        dist = pairwise_distances(img_feature, self.features)
+        dist = pairwise_distances(img_feature, self.features, metric=metric)
         best_img_idxs = np.argsort(dist)[0].tolist()[:num_imgs]
         best_img_dist = dist[0][best_img_idxs]
 
-        best_img_paths = [os.path.join(self.search_list[0].images_root,
-                                       self.search_list[0].feature_names[i] + '.jpg')
-                          for i in best_img_idxs]
+        best_imgs = [
+            Image.open(os.path.join(self.search_list[0].images_root,
+                                    self.search_list[0].feature_names[i] + '.jpg'))
+            for i in best_img_idxs]
 
-        return best_img_paths, best_img_dist
+        return best_imgs, best_img_dist
 
 class Search():
 
@@ -78,6 +79,10 @@ class Search():
     def load_features(self):
         print('Loading features from:', self.features_root)
         feat_files = glob.glob(os.path.join(self.features_root, '*.npy'))
+
+        if len(feat_files) == 0:
+            raise ValueError('Features root is empty.')
+
         feat_files = sorted(feat_files)
 
         feat_names = [os.path.basename(f).rsplit('.', 1)[0]
@@ -92,21 +97,22 @@ class Search():
 
         return scaler
 
-    def get_similar_images(self, img: Image, num_imgs=8):
+    def get_similar_images(self, img: Image, num_imgs=8, metric='l2'):
         img = image_utils.process_image(img)
 
         img_feature = self.feature_generator.get_feature(img)
         img_feature = img_feature.reshape(1, -1)
         img_feature = self.scaler.transform(img_feature)
 
-        dist = pairwise_distances(img_feature, self.features)
+        dist = pairwise_distances(img_feature, self.features, metric=metric)
         best_img_idxs = np.argsort(dist)[0].tolist()[:num_imgs]
         best_img_dist = dist[0][best_img_idxs]
 
-        best_img_paths = [os.path.join(self.images_root, self.feature_names[i] + '.jpg')
-                          for i in best_img_idxs]
+        best_imgs = [Image.open(os.path.join(self.images_root,
+                                             self.feature_names[i] + '.jpg'))
+                     for i in best_img_idxs]
 
-        return best_img_paths, best_img_dist
+        return best_imgs, best_img_dist
 
 class ResnetFeatureGenerator():
 
@@ -199,19 +205,22 @@ def download_feature_vectors(files, save_dir, feature_gen=None):
         np.save(save_path, feature)
 
 def main():
-    product_imgs = '../../data/fashion/dresses/'
-    product_feats_root = './data/features/fashion/dresses/'
-    searches = {}
+    model_imgs = '../../data/fashion_models/dresses_clustered2/'
+    model_feats_root = './data/features/fashion_models/dresses/'
 
-    search = CombinedSearch(product_imgs,
-                                       [os.path.join(product_feats_root, f) for f in ['akiwi_50', 'resnet']],
-                                       [AkiwiFeatureGenerator(50), ResnetFeatureGenerator()],
-                                       factors=[100, 1])
+    folder_gens = {'akiwi_50': AkiwiFeatureGenerator(50),
+                   'akiwi_64': AkiwiFeatureGenerator(64),
+                   'akiwi_144': AkiwiFeatureGenerator(114),
+                   'resnet': ResnetFeatureGenerator(),
+                   'resnet_retrained': ResnetFeatureGenerator(
+                       './models/resnet152_retrained.pth')
+                   }
 
-    search.get_similar_images(Image.open('../../data/fashion/dresses/5713733606269.jpg'))
-
-
-    print('done')
+    searches_m = {}
+    for dir_name, gen in folder_gens.items():
+        searches_m[dir_name] = Search(model_imgs,
+                                      os.path.join(model_feats_root, dir_name),
+                                      gen)
 
 if __name__ == '__main__':
     main()
