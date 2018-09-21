@@ -1,14 +1,17 @@
-from networks import stargan, pix2pix
+from networks import stargan, pix2pix, cyclegan
 from torchvision import transforms
 import torch
 
 from PIL import Image
 import os
 
-class StarGAN_generator():
+class StarGANGenerator():
 
     LABELS = {
-        'sleeve_length':    ['3/4', 'long', 'short', '`sleeveless'],
+        'sleeve_length':    ['3/4', 'long', 'short', 'sleeveless'],
+        'fit':              ['loose', 'normal', 'tight'],
+        'neckline':         ['round', 'v', 'wide'],
+        'length':           ['short', 'knee', 'long'],
         'pattern':          ['floral', 'lace', 'polkadots', 'print',
                              'stripes', 'unicolors']
     }
@@ -97,12 +100,54 @@ class Pix2PixGenerator():
         return Image.fromarray(img_d)
 
 
+class CycleGANGenerator():
+
+    MODELS = ['floral', 'stripes']
+    DIRECTIONS = ['to', 'from']
+
+    TRANSFORMS = transform = transforms.Compose([
+        transforms.Resize(256, interpolation=Image.ANTIALIAS),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    def __init__(self, G_path_root):
+
+        self.G_models = {}
+
+        for model in self.MODELS:
+
+            self.G_models[model] = {}
+
+            for direction in self.DIRECTIONS:
+
+                try:
+                    G_path = os.path.join(G_path_root, '{}_{}.pth'.format(model, direction))
+                    G = cyclegan.Generator()
+                    G.load_state_dict(torch.load(G_path, map_location='cpu'))
+
+                    self.G_models[model][direction] = G
+                except:
+                    print("Couldn't find model", G_path)
+
+    def generate_image(self, image: Image, attr: str, direction: str):
+        img_tensor = self.TRANSFORMS(image).unsqueeze(0)
+        fake_tensor = self.G_models[attr][direction](img_tensor).squeeze(0)
+        fake_img = self.denorm_tensor(fake_tensor)
+
+        return fake_img
+
+    def denorm_tensor(self, img_tensor):
+        img_d = (img_tensor + 1) / 2
+        img_d = img_d.clamp_(0, 1)
+        img_d = img_d.data.mul(255).clamp(0, 255).byte()
+        img_d = img_d.permute(1, 2, 0).cpu().numpy()
+
+        return Image.fromarray(img_d)
 
 def main():
-    s = StarGAN_generator('./models/stargan/')
-    test_img_path = './test_images/dresses_sample/IV321C031-Q11.jpg'
-    test_img = Image.open(test_img_path)
-    fake_img = s.generate_image(test_img, 'sleeve_length', 'long')
+
+    c = CycleGANGenerator('./models/cyclegan/')
+    fake_img = c.generate_image(Image.open('./data/test_images/dresses/2GU21C04R-K11.jpg'), 'floral', 'to')
 
     print('done')
 
