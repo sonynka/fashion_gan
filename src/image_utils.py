@@ -1,4 +1,6 @@
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFilter
+import numpy as np
+import cv2
 
 
 def pad_image(img):
@@ -41,3 +43,64 @@ def process_image(img: Image, size=None):
     img = resize_image(img, size=size)
 
     return img
+
+
+def get_edges(img_path, img_size, crop=False):
+    """ Get black-white canny edge detection for the image """
+
+    img = Image.open(img_path)
+    if crop:
+        w, h = img.size
+        img = img.crop((70, 0, w - 70, h))
+    img = img.resize(img_size, Image.ANTIALIAS)
+    img = img.filter(ImageFilter.FIND_EDGES)
+    img = img.convert('L')
+    img_arr = np.array(img)
+    img.close()
+
+    return img_arr
+
+
+def get_mask(img_path, img_size, crop=False):
+
+    img = threshold_mask(img_path)
+
+    if crop:
+        w, h = img.size
+        img = img.crop((70, 0, w - 70, h))
+    img = img.resize(img_size)
+    img_arr = np.array(img)
+    img.close()
+
+    return img_arr
+
+
+def threshold_mask(img_path, thresh=200):
+    """
+    Get image threshold mask.
+    """
+
+    # Read image
+    im_in = cv2.imread(img_path)
+
+    # grayscale and blur
+    im_in = cv2.cvtColor(im_in, cv2.COLOR_BGR2GRAY)
+    im_in = cv2.GaussianBlur(im_in, (5, 5), 0)
+
+    # get threshold mask
+    _, thresh_mask = cv2.threshold(im_in, thresh, 255, cv2.THRESH_BINARY)
+    im_masked = cv2.bitwise_not(thresh_mask)
+
+    # fill contours of threshold mask
+    _, contours, _ = cv2.findContours(im_masked, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        cv2.drawContours(im_masked, [cnt], 0, 255, -1)
+
+    # smooth and dilate
+    smooth = cv2.GaussianBlur(im_masked, (9, 9), 0)
+    _, thresh_mask2 = cv2.threshold(smooth, 0, 255,
+                               cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    kernel = np.ones((2, 2), np.uint8)
+    im_out = cv2.dilate(thresh_mask2, kernel, iterations=1)
+
+    return Image.fromarray(im_out)
