@@ -10,18 +10,11 @@ All data neccessary for running this project can be download by running the foll
 cd data && download_data.sh
 ```
 
-### Images
-The dataset used for this project is a scraped dataset of fashion product images and their attributes. The dataset was created by scraping several online fashion stores. The scraper project can be found here: https://github.com/sonynka/fashion_scraper. 
-
-The models used in this project were trained on about 15.000 images of the category dresses from the original scraped dataset. Each of these product images also has a corresponding image of a model wearing the product.
-
-### Features
-In order to trigger a similarity search, all the product and model images from the dataset have various pre-calculated feature vectors as wel..
-
-### Models
-The models used for generation of new images were trained using several GANs repositories:
-- **Pix2Pix** and **CycleGAN:** https://github.com/sonynka/pytorch-CycleGAN-and-pix2pix
-- **StarGAN:** https://github.com/sonynka/StarGAN
+The script will download the following folders:
+- **images**: images of fashion products and model wearing those products that the models were trained on (cca 15.000 product images and 60.000 model images). The original dataset for the training containing more than 90.000 images was scraped from online fashion websites (https://github.com/sonynka/fashion_scraper)
+- **clustering**: models and data for clustering of available model images to create a paired dataset of 1 product image + 1 model image
+- **features**: feature vectors for both product images and clustered model images for retrieval
+- **models**: trained GAN models to modify attributes of images (The models were trained using several GANs repositories: **Pix2Pix** and **CycleGAN** on https://github.com/sonynka/pytorch-CycleGAN-and-pix2pix and **StarGAN** on https://github.com/sonynka/StarGAN.
 
 # Usage
 
