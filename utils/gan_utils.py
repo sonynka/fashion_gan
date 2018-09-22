@@ -48,6 +48,8 @@ class StarGANGenerator():
         fake_tensor = G(img_tensor, label_tensor).squeeze(0)
         fake_img = self.denorm_tensor(fake_tensor)
 
+        fake_img = fake_img.resize([256, 256])
+
         return fake_img
 
     def get_label(self, attr, value):

@@ -30,7 +30,7 @@ class CombinedSearch():
 
         self.features = np.concatenate(self.features, axis=1)
 
-    def get_similar_images(self, img, num_imgs=8, metric='l2'):
+    def get_similar_images(self, img, num_imgs=8, metric='l1', get_distances=False):
         img = image_utils.process_image(img)
 
         img_feature = []
@@ -47,12 +47,14 @@ class CombinedSearch():
         best_img_idxs = np.argsort(dist)[0].tolist()[:num_imgs]
         best_img_dist = dist[0][best_img_idxs]
 
-        best_imgs = [
-            Image.open(os.path.join(self.search_list[0].images_root,
-                                    self.search_list[0].feature_names[i] + '.jpg'))
+        best_img_paths = [os.path.join(self.search_list[0].images_root,
+                                  self.search_list[0].feature_names[i] + '.jpg')
             for i in best_img_idxs]
 
-        return best_imgs, best_img_dist
+        if get_distances:
+            return best_img_paths, best_img_dist
+        else:
+            return best_img_paths
 
 class Search():
 
@@ -97,7 +99,7 @@ class Search():
 
         return scaler
 
-    def get_similar_images(self, img: Image, num_imgs=8, metric='l2'):
+    def get_similar_images(self, img: Image, num_imgs=8, metric='l1', get_distances=False):
         img = image_utils.process_image(img)
 
         img_feature = self.feature_generator.get_feature(img)
@@ -108,11 +110,13 @@ class Search():
         best_img_idxs = np.argsort(dist)[0].tolist()[:num_imgs]
         best_img_dist = dist[0][best_img_idxs]
 
-        best_imgs = [Image.open(os.path.join(self.images_root,
-                                             self.feature_names[i] + '.jpg'))
+        best_img_paths = [os.path.join(self.images_root, self.feature_names[i] + '.jpg')
                      for i in best_img_idxs]
 
-        return best_imgs, best_img_dist
+        if get_distances:
+            return best_img_paths, best_img_dist
+        else:
+            return best_img_paths
 
 class ResnetFeatureGenerator():
 
@@ -205,22 +209,25 @@ def download_feature_vectors(files, save_dir, feature_gen=None):
         np.save(save_path, feature)
 
 def main():
-    model_imgs = '../../data/fashion_models/dresses_clustered2/'
-    model_feats_root = './data/features/fashion_models/dresses/'
+    product_imgs = '/Users/sonynka/HTW/MasterArbeit/data/fashion/dresses/'
+    product_feats_root = '/Users/sonynka/HTW/MasterArbeit/Projects/fashion_designer/data/features/fashion/dresses/'
 
     folder_gens = {'akiwi_50': AkiwiFeatureGenerator(50),
                    'akiwi_64': AkiwiFeatureGenerator(64),
-                   'akiwi_144': AkiwiFeatureGenerator(114),
+                   'akiwi_114': AkiwiFeatureGenerator(114),
                    'resnet': ResnetFeatureGenerator(),
                    'resnet_retrained': ResnetFeatureGenerator(
                        './models/resnet152_retrained.pth')
                    }
 
-    searches_m = {}
+    searches = {}
     for dir_name, gen in folder_gens.items():
-        searches_m[dir_name] = Search(model_imgs,
-                                      os.path.join(model_feats_root, dir_name),
-                                      gen)
+        searches[dir_name] = Search(product_imgs,
+                                    os.path.join(product_feats_root, dir_name),
+                                    gen)
+
+    searches['akiwi_50'].get_similar_images(Image.open('/Users/sonynka/HTW/MasterArbeit/data/fashion/dresses/5713733606269.jpg'))
+    print('done')
 
 if __name__ == '__main__':
     main()
