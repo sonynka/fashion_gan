@@ -5,21 +5,51 @@ from PIL import Image
 import os
 
 
-class StarGANGenerator():
+class Modifier():
+
+    def __init__(self, models_root):
+        self._shape_modifier = _StarGANModifier(os.path.join(models_root, 'stargan'))
+        self._pattern_modifier = _CycleGANModifier(os.path.join(models_root, 'cyclegan'))
+        self._model_generator = _Pix2PixModifier(os.path.join(models_root, 'pix2pix_models.pth'))
+
+    def modify_shape(self, image: Image, attribute: str, value: str):
+        return self._shape_modifier.modify_image(image, attribute, value)
+
+    def modify_pattern(self, image: Image, attribute: str, value: str):
+        return self._pattern_modifier.modify_image(image, attribute, value)
+
+    def product_to_model(self, image: Image):
+        return self._model_generator.generate_image(image)
+
+
+class _BaseModifier():
+    def __init__(self, img_size):
+
+        self.TRANSFORMS = transforms.Compose([
+            transforms.Resize(img_size, interpolation=Image.ANTIALIAS),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    @staticmethod
+    def denorm_tensor(img_tensor):
+
+        img_d = (img_tensor + 1) / 2
+        img_d = img_d.clamp_(0, 1)
+        img_d = img_d.data.mul(255).clamp(0, 255).byte()
+        img_d = img_d.permute(1, 2, 0).cpu().numpy()
+        return Image.fromarray(img_d)
+
+
+class _StarGANModifier(_BaseModifier):
 
     LABELS = {
         'sleeve_length':    ['3/4', 'long', 'short', 'sleeveless'],
         'fit':              ['loose', 'normal', 'tight'],
         'neckline':         ['round', 'v', 'wide'],
-        'length':           ['short', 'knee', 'long'],
-        'pattern':          ['floral', 'lace', 'polkadots', 'print',
-                             'stripes', 'unicolors']
+        'length':           ['short', 'knee', 'long']
     }
 
-    TRANSFORMS = transforms.Compose([
-        transforms.Resize(128, interpolation=Image.ANTIALIAS),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    IMAGE_SIZE = 128
 
     def __init__(self, G_path_root):
 
@@ -32,59 +62,46 @@ class StarGANGenerator():
                 G_path = os.path.join(G_path_root, attr + '.pth')
                 G = stargan.Generator(c_dim=num_classes)
                 G.load_state_dict(torch.load(G_path, map_location='cpu'))
-
                 self.G_models[attr] = G
             except:
                 print("Couldn't find model", G_path)
 
-    def generate_image(self, image: Image, attr: str, value: str):
+        super().__init__(self.IMAGE_SIZE)
+
+    def modify_image(self, image: Image, attribute: str, value: str):
+        assert attribute in self.LABELS.keys()
+        assert value in self.LABELS[attribute]
 
         img_tensor = self.TRANSFORMS(image).unsqueeze(0)
-
-        img_label = self.get_label(attr, value)
+        img_label = self.get_label(attribute, value)
         label_tensor = torch.FloatTensor(img_label).unsqueeze(0)
 
-        G = self.G_models[attr]
+        G = self.G_models[attribute]
         fake_tensor = G(img_tensor, label_tensor).squeeze(0)
         fake_img = self.denorm_tensor(fake_tensor)
-
-        fake_img = fake_img.resize([256, 256])
 
         return fake_img
 
     def get_label(self, attr, value):
-        assert attr in self.LABELS.keys()
-        assert value in self.LABELS[attr]
-
         attr_len = len(self.LABELS[attr])
         label_idx = self.LABELS[attr].index(value)
 
         label = [0] * attr_len
         label[label_idx] = 1
 
-        return(label)
-
-    def denorm_tensor(self, img_tensor):
-
-        img_d = (img_tensor + 1) / 2
-        img_d = img_d.clamp_(0, 1)
-        img_d = img_d.data.mul(255).clamp(0, 255).byte()
-        img_d = img_d.permute(1, 2, 0).cpu().numpy()
-
-        return Image.fromarray(img_d)
+        return label
 
 
-class Pix2PixGenerator():
+class _Pix2PixModifier(_BaseModifier):
 
-    TRANSFORMS = transform = transforms.Compose([
-        transforms.Resize(256, interpolation=Image.ANTIALIAS),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    IMAGE_SIZE = 256
 
     def __init__(self, G_path):
 
         self.G = pix2pix.Generator()
         self.G.load_state_dict(torch.load(G_path, map_location='cpu'))
+
+        super().__init__(self.IMAGE_SIZE)
 
     def generate_image(self, image: Image):
         img_tensor = self.TRANSFORMS(image).unsqueeze(0)
@@ -93,37 +110,25 @@ class Pix2PixGenerator():
 
         return fake_img
 
-    def denorm_tensor(self, img_tensor):
-        img_d = (img_tensor + 1) / 2
-        img_d = img_d.clamp_(0, 1)
-        img_d = img_d.data.mul(255).clamp(0, 255).byte()
-        img_d = img_d.permute(1, 2, 0).cpu().numpy()
 
-        return Image.fromarray(img_d)
-
-
-class CycleGANGenerator():
+class _CycleGANModifier(_BaseModifier):
 
     MODELS = ['floral', 'stripes']
     DIRECTIONS = ['to', 'from']
 
-    TRANSFORMS = transform = transforms.Compose([
-        transforms.Resize(256, interpolation=Image.ANTIALIAS),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    IMAGE_SIZE = 256
 
     def __init__(self, G_path_root):
 
         self.G_models = {}
 
         for model in self.MODELS:
-
             self.G_models[model] = {}
 
             for direction in self.DIRECTIONS:
-
                 try:
-                    G_path = os.path.join(G_path_root, '{}_{}.pth'.format(model, direction))
+                    G_path = os.path.join(
+                        G_path_root, '{}_{}.pth'.format(model, direction))
                     G = cyclegan.Generator()
                     G.load_state_dict(torch.load(G_path, map_location='cpu'))
 
@@ -131,26 +136,24 @@ class CycleGANGenerator():
                 except:
                     print("Couldn't find model", G_path)
 
-    def generate_image(self, image: Image, attr: str, direction: str):
+        super().__init__(self.IMAGE_SIZE)
+
+    def modify_image(self, image: Image, attribute: str, value: str):
+        assert attribute in self.MODELS
+        assert value in self.DIRECTIONS
+
         img_tensor = self.TRANSFORMS(image).unsqueeze(0)
-        fake_tensor = self.G_models[attr][direction](img_tensor).squeeze(0)
+        fake_tensor = self.G_models[attribute][value](img_tensor).squeeze(0)
         fake_img = self.denorm_tensor(fake_tensor)
 
         return fake_img
 
-    def denorm_tensor(self, img_tensor):
-        img_d = (img_tensor + 1) / 2
-        img_d = img_d.clamp_(0, 1)
-        img_d = img_d.data.mul(255).clamp(0, 255).byte()
-        img_d = img_d.permute(1, 2, 0).cpu().numpy()
-
-        return Image.fromarray(img_d)
 
 def main():
+    modifier = Modifier('../data/models/')
 
-    c = CycleGANGenerator('./models/cyclegan/')
-    fake_img = c.generate_image(Image.open('./data/test_images/dresses/2GU21C04R-K11.jpg'), 'floral', 'to')
-
+    test_img = Image.open('../data/images/test_images/dresses/605423287.jpg')
+    mod_img = modifier.modify_shape(test_img, 'sleeve_length', 'long')
     print('done')
 
 if __name__ == '__main__':
