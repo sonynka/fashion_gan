@@ -21,6 +21,12 @@ class Modifier():
     def product_to_model(self, image: Image):
         return self._model_generator.generate_image(image)
 
+    def get_shape_labels(self):
+        return self._shape_modifier.LABELS
+
+    def get_pattern_labels(self):
+        return self._pattern_modifier.LABELS
+
 
 class _BaseModifier():
     def __init__(self, img_size):

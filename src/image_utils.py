@@ -1,6 +1,7 @@
 from PIL import Image, ImageOps, ImageFilter
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 
 def pad_image(img):
@@ -104,3 +105,32 @@ def threshold_mask(img_path, thresh=200):
     im_out = cv2.dilate(thresh_mask2, kernel, iterations=1)
 
     return Image.fromarray(im_out)
+
+
+def plot_img_row(images, img_labels=None):
+    fig, axarr = plt.subplots(nrows=1, ncols=len(images),
+                              figsize=(len(images) * 3, 4))
+
+    for i, img in enumerate(images):
+        ax = axarr[i]
+        img = img.resize([256, 256])
+        img = img.crop((40, 0, 216, 256))
+        ax.imshow(img)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        for spine in ax.spines.keys():
+            ax.spines[spine].set_visible(False)
+
+        if img_labels is not None:
+            ax.set_title(img_labels[i])
+
+    plt.show()
+
+
+def plot_img(img):
+    plt.imshow(img)
+    plt.axis('off')
+    plt.show()
+
+    return img

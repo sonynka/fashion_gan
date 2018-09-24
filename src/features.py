@@ -105,8 +105,7 @@ class AkiwiFeatureGenerator():
         response = requests.post(url, files=files, timeout=10)
 
         retries = 0
-        while (response.status_code != 200) | (retries < 3):
-            print('Retrying request...')
+        while (response.status_code != 200) & (retries < 3):
             retries += 1
             response = requests.post(url, files=files, timeout=10)
 

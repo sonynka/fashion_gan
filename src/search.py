@@ -108,7 +108,6 @@ class Search():
         :return:            list of best image paths
         """
 
-
         best_img_paths, _ = self._search_similar_images(img, num_imgs, metric)
         return best_img_paths
 
