@@ -1,16 +1,32 @@
 from src.image_utils import plot_img, plot_img_row
 from PIL import Image
+from src.gans import Modifier
 
 
 class FashionGANApp():
+    """
+    App that allows user to modify a dress image and search for similar
+    products via console input.
+    """
 
-    def __init__(self, modifier, dress_search, model_search, num_imgs=10):
+    def __init__(self, modifier: Modifier, dress_search, model_search, num_imgs=10):
+        """
+        :param modifier: GAN modifier object to generate modified images
+        :param dress_search: Search or CombinedSearch object for products
+        :param model_search: Search or CombinedSearch object for model images
+        :param num_imgs: Number of similar images to retrieve
+        """
         self._modifier = modifier
         self._dress_search = dress_search
         self._model_search = model_search
         self._num_similar_imgs = num_imgs
 
-    def start(self, input_img):
+    def start(self, input_img: Image):
+        """
+        Start the application - modify input image with console input.
+        :param input_img: image to modify
+        """
+
         product_img = input_img
         plot_img(product_img)
 

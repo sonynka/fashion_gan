@@ -6,8 +6,15 @@ import os
 
 
 class Modifier():
+    """
+    Modifier class that contains all GAN generator to modify attributes of
+    an input image.
+    """
 
     def __init__(self, models_root):
+        """
+        :param models_root: path to folder containg all models
+        """
         self._shape_modifier = _StarGANModifier(os.path.join(models_root, 'stargan'))
         self._pattern_modifier = _CycleGANModifier(os.path.join(models_root, 'cyclegan'))
         self._model_generator = _Pix2PixModifier(os.path.join(models_root, 'pix2pix_models.pth'))
