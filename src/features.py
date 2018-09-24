@@ -104,6 +104,12 @@ class AkiwiFeatureGenerator():
         files = {'file': ('img.jpg', img_bytes.getvalue(), 'image/jpeg')}
         response = requests.post(url, files=files, timeout=10)
 
+        retries = 0
+        while (response.status_code != 200) | (retries < 3):
+            print('Retrying request...')
+            retries += 1
+            response = requests.post(url, files=files, timeout=10)
+
         if response.status_code == 200:
             response_feature = response.content
             feature = np.frombuffer(response_feature, dtype=np.uint8)

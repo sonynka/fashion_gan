@@ -92,6 +92,46 @@ class _StarGANModifier(_BaseModifier):
         return label
 
 
+class _CycleGANModifier(_BaseModifier):
+
+    LABELS = {
+        'floral': ['add', 'remove'],
+        'stripes': ['add', 'remove']
+    }
+
+    IMAGE_SIZE = 256
+
+    def __init__(self, G_path_root):
+
+        self.G_models = {}
+
+        for attr, values in self.LABELS.items():
+            self.G_models[attr] = {}
+
+            for value in values:
+                try:
+                    G_path = os.path.join(
+                        G_path_root, '{}_{}.pth'.format(attr, value))
+                    G = cyclegan.Generator()
+                    G.load_state_dict(torch.load(G_path, map_location='cpu'))
+
+                    self.G_models[attr][value] = G
+                except:
+                    print("Couldn't find model", G_path)
+
+        super().__init__(self.IMAGE_SIZE)
+
+    def modify_image(self, image: Image, attribute: str, value: str):
+        assert attribute in self.LABELS.keys()
+        assert value in self.LABELS[attribute]
+
+        img_tensor = self.TRANSFORMS(image).unsqueeze(0)
+        fake_tensor = self.G_models[attribute][value](img_tensor).squeeze(0)
+        fake_img = self.denorm_tensor(fake_tensor)
+
+        return fake_img
+
+
 class _Pix2PixModifier(_BaseModifier):
 
     IMAGE_SIZE = 256
@@ -106,44 +146,6 @@ class _Pix2PixModifier(_BaseModifier):
     def generate_image(self, image: Image):
         img_tensor = self.TRANSFORMS(image).unsqueeze(0)
         fake_tensor = self.G(img_tensor).squeeze(0)
-        fake_img = self.denorm_tensor(fake_tensor)
-
-        return fake_img
-
-
-class _CycleGANModifier(_BaseModifier):
-
-    MODELS = ['floral', 'stripes']
-    DIRECTIONS = ['to', 'from']
-
-    IMAGE_SIZE = 256
-
-    def __init__(self, G_path_root):
-
-        self.G_models = {}
-
-        for model in self.MODELS:
-            self.G_models[model] = {}
-
-            for direction in self.DIRECTIONS:
-                try:
-                    G_path = os.path.join(
-                        G_path_root, '{}_{}.pth'.format(model, direction))
-                    G = cyclegan.Generator()
-                    G.load_state_dict(torch.load(G_path, map_location='cpu'))
-
-                    self.G_models[model][direction] = G
-                except:
-                    print("Couldn't find model", G_path)
-
-        super().__init__(self.IMAGE_SIZE)
-
-    def modify_image(self, image: Image, attribute: str, value: str):
-        assert attribute in self.MODELS
-        assert value in self.DIRECTIONS
-
-        img_tensor = self.TRANSFORMS(image).unsqueeze(0)
-        fake_tensor = self.G_models[attribute][value](img_tensor).squeeze(0)
         fake_img = self.denorm_tensor(fake_tensor)
 
         return fake_img
