@@ -9,7 +9,8 @@ class FashionGANApp():
     products via console input.
     """
 
-    def __init__(self, modifier: Modifier, dress_search, model_search, num_imgs=10):
+    def __init__(self, modifier: Modifier, dress_search, model_search,
+                 num_imgs=10, metric='l1'):
         """
         :param modifier: GAN modifier object to generate modified images
         :param dress_search: Search or CombinedSearch object for products
@@ -20,6 +21,7 @@ class FashionGANApp():
         self._dress_search = dress_search
         self._model_search = model_search
         self._num_similar_imgs = num_imgs
+        self._search_metric = metric
 
     def start(self, input_img: Image):
         """
@@ -87,7 +89,7 @@ class FashionGANApp():
     def _search_products(self, img):
         self._print_title('SIMILAR PRODUCTS FROM PRODUCT SEARCH')
         prod_sim_imgs = self._dress_search.get_similar_images(
-            img, self._num_similar_imgs)
+            img, self._num_similar_imgs, metric=self._search_metric)
         plot_img_row([Image.open(i) for i in prod_sim_imgs],
                      img_labels=range(self._num_similar_imgs))
 
@@ -96,7 +98,7 @@ class FashionGANApp():
     def _search_models(self, img):
         self._print_title('MODEL SEARCH')
         mod_sim_imgs = self._model_search.get_similar_images(
-            img, num_imgs=self._num_similar_imgs)
+            img, num_imgs=self._num_similar_imgs, metric=self._search_metric)
 
         plot_img_row([Image.open(i) for i in mod_sim_imgs])
 
