@@ -3,7 +3,8 @@ from torchvision import transforms
 import torch
 from PIL import Image
 import os
-
+import glob
+import random
 
 class Modifier():
     """
@@ -58,8 +59,7 @@ class _StarGANModifier(_BaseModifier):
     LABELS = {
         'sleeve_length':    ['3/4', 'long', 'short', 'sleeveless'],
         'fit':              ['loose', 'normal', 'tight'],
-        'neckline':         ['round', 'v', 'wide'],
-        'length':           ['short', 'knee', 'long']
+        'neckline':         ['round', 'v', 'wide']
     }
 
     IMAGE_SIZE = 128
@@ -71,15 +71,20 @@ class _StarGANModifier(_BaseModifier):
         for attr, label_map in self.LABELS.items():
             num_classes = len(self.LABELS[attr])
 
-            try:
-                G_path = os.path.join(G_path_root, attr + '.pth')
-                G = stargan.Generator(c_dim=num_classes)
-                G.load_state_dict(torch.load(G_path, map_location='cpu'))
-                self.G_models[attr] = G
-            except:
-                print("Couldn't find model", G_path)
+            G_path = os.path.join(G_path_root, attr + '.pth')
+            self.G_models[attr] = self.load_model(G_path, num_classes)
 
         super().__init__(self.IMAGE_SIZE)
+
+    @staticmethod
+    def load_model(G_path, num_classes):
+        try:
+            G = stargan.Generator(c_dim=num_classes)
+            G.load_state_dict(torch.load(G_path, map_location='cpu'))
+            return G
+
+        except:
+            print("Couldn't find model", G_path)
 
     def modify_image(self, image: Image, attribute: str, value: str):
         assert attribute in self.LABELS.keys()
@@ -120,26 +125,34 @@ class _CycleGANModifier(_BaseModifier):
 
         for attr, values in self.LABELS.items():
             self.G_models[attr] = {}
+            attr_path = glob.glob(os.path.join(G_path_root, attr, '*.pth'))
 
             for value in values:
-                try:
-                    G_path = os.path.join(
-                        G_path_root, '{}_{}.pth'.format(attr, value))
-                    G = cyclegan.Generator()
-                    G.load_state_dict(torch.load(G_path, map_location='cpu'))
-
-                    self.G_models[attr][value] = G
-                except:
-                    print("Couldn't find model", G_path)
+                G_paths = [p for p in attr_path if value in p]
+                G_list = [self.load_model(p) for p in G_paths]
+                self.G_models[attr][value] = G_list
 
         super().__init__(self.IMAGE_SIZE)
+
+    @staticmethod
+    def load_model(G_path):
+        try:
+            G = cyclegan.Generator()
+            G.load_state_dict(torch.load(G_path, map_location='cpu'))
+            return G
+
+        except:
+            print("Couldn't find model", G_path)
 
     def modify_image(self, image: Image, attribute: str, value: str):
         assert attribute in self.LABELS.keys()
         assert value in self.LABELS[attribute]
 
         img_tensor = self.TRANSFORMS(image).unsqueeze(0)
-        fake_tensor = self.G_models[attribute][value](img_tensor).squeeze(0)
+
+        G = random.choice(self.G_models[attribute][value])
+        fake_tensor = G(img_tensor).squeeze(0)
+
         fake_img = self.denorm_tensor(fake_tensor)
 
         return fake_img
@@ -167,8 +180,8 @@ class _Pix2PixModifier(_BaseModifier):
 def main():
     modifier = Modifier('../data/models/')
 
-    test_img = Image.open('../data/images/test_images/dresses/605423287.jpg')
-    mod_img = modifier.modify_shape(test_img, 'sleeve_length', 'long')
+    test_img = Image.open('../data/images/test_images/dresses/NEW1407001000004.jpg')
+    mod_img = modifier.modify_pattern(test_img, 'floral', 'add')
     print('done')
 
 if __name__ == '__main__':

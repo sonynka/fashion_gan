@@ -1,18 +1,27 @@
 # FashionGAN Search
 
-This project was created as part of my master thesis to evaluate the possibilities of generative adversarial networks to improve image retrieval.
+This project is part of the evaluation of generative adversarial networks for improving image retrieval systems. It uses a fashion dataset to synthesize new images of fashion products based on user input, and to trigger a search of similar existing products.
+The main application allows user to modify the shape and pattern of a dress, and then choose the best match from the retrieved products. The user can then further modify the chosen product.
 
 ## Usage
 
-### App
-To use the project run the FashionGAN_search notebook in the given conda environment (see requirements). The application started in the notebook can be used by entering text input.
+#### App
+To use the project run the *FashionGAN_search.ipynb* notebook in the given conda environment (see requirements). The application started in the notebook prompts the user to control the image modifications and search by text input.
 
-### Processing
-The notebooks in processing folder are used to download the feature vectors of the image search and clustering model images. All the data that they produce is already provided in the data folder.
+#### Processing
+The notebooks in processing folder were used to download the feature vectors for image retrieval and clustering model images. All the data that they produce is already provided in the data folder. However, these notebooks can be run to further understand these processing steps.
+
+#### Networks
+The networks folder contains the three generators used in the final model
+- **StarGAN** originally from: https://github.com/yunjey/StarGAN
+- **CycleGAN** originally from: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
+- **Pix2Pix** originally from: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
+
+The networks were trained on the fashion dataset, and the best models are provided in the data folder.
 
 ## Setup
 
-### Data
+#### Data
 All data neccessary for running this project can be downloaded by running the following script:
 
 ```bash
@@ -27,7 +36,7 @@ The script will download the following folders:
 
 **Note**: The original dataset was scraped from various fashion online stores and contains cca 90.000 images. For the purpose of this project, I only used category dresses. Code for scraping and the whole dataset can be found here: https://github.com/sonynka/fashion_scraper.
 
-### Requirements
+#### Requirements
 To download Anaconda package manager, go to: <i>https://www.continuum.io/downloads</i>.
 After installing the conda environment locally, proceed to setup this project environment.
 
@@ -56,6 +65,3 @@ If you need to completely remove this conda env, you can use the following comma
 ```bash
 conda env remove --name fashion_gan
 ```
-
-
-
