@@ -25,7 +25,8 @@ The networks were trained on the fashion dataset, and the best models are provid
 All data neccessary for running this project can be downloaded by running the following script:
 
 ```bash
-cd data && download_data.sh
+cd data
+./download_data.sh
 ```
 
 The script will download the following folders:
