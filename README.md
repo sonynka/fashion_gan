@@ -3,6 +3,8 @@
 This project is part of the evaluation of generative adversarial networks for improving image retrieval systems. It uses a fashion dataset to synthesize new images of fashion products based on user input, and to trigger a search of similar existing products.
 The main application allows user to modify the shape and pattern of a dress, and then choose the best match from the retrieved products. The user can then further modify the chosen product.
 
+![results](https://raw.githubusercontent.com/sonynka/fashion_gan/images/results.png)
+
 ## Usage
 
 #### App
