@@ -13,6 +13,7 @@ clyent==1.2.2
 constantly==15.1.0
 cryptography==2.3.1
 cycler==0.10.0
+Cython==0.28.5
 decorator==4.3.0
 entrypoints==0.2.3
 html5lib==1.0.1
@@ -63,7 +64,7 @@ python-dateutil==2.7.3
 pytz==2018.5
 PyYAML==3.13
 pyzmq==17.1.2
-requests==2.19.1
+requests==2.20.0
 scikit-learn==0.19.2
 scipy==1.1.0
 Send2Trash==1.5.0
